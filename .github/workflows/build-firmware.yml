@@ -33,9 +33,17 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME:-dev}"
           TAG_CLEAN="${TAG#v}"
-          cp build/*.bin "wican-fw_${{ matrix.hardware.name }}_v${TAG_CLEAN}.bin"
-          cp build/*.bin firmware.bin
-          # Create a zip with the bin
+          # The project binary is built under build/ with the project name from CMakeLists
+          # Find the main app binary (not bootloader, not partition table)
+          APP_BIN=$(find build -maxdepth 1 -name 'wican-fw*.bin' | head -1)
+          if [ -z "$APP_BIN" ]; then
+            echo "ERROR: Could not find app binary"
+            ls -la build/*.bin
+            exit 1
+          fi
+          echo "Found app binary: $APP_BIN"
+          cp "$APP_BIN" "wican-fw_${{ matrix.hardware.name }}_v${TAG_CLEAN}.bin"
+          cp "$APP_BIN" firmware.bin
           zip "wican-fw_${{ matrix.hardware.name }}_v${TAG_CLEAN}.zip" firmware.bin
           rm firmware.bin
 
