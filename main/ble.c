@@ -255,7 +255,7 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
 
 		/* Characteristic Value */
 		[IDX_CHAR_VAL_C]  =
-			{{ESP_GATT_RSP_BY_APP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_C, ESP_GATT_PERM_READ_ENC_MITM | ESP_GATT_PERM_WRITE_ENC_MITM,
+			{{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_TEST_C, ESP_GATT_PERM_READ_ENC_MITM | ESP_GATT_PERM_WRITE_ENC_MITM,
 		  GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
 
 };
@@ -521,6 +521,14 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
             	if(param->write.len == 1 && (param->write.value[0] == 0 || param->write.value[0] == 1))
             	{
             		config_server_set_ble_config(param->write.value[0]);
+            	}
+            	else
+            	{
+            		// Forward OBD commands written to RX characteristic (0xFFF2) to the RX queue
+            		memcpy(rx_buffer.ucElement, param->write.value, param->write.len);
+            		rx_buffer.dev_channel = DEV_BLE;
+            		rx_buffer.usLen = param->write.len;
+            		xQueueSend(*xBle_RX_Queue, ( void * ) &rx_buffer, portMAX_DELAY );
             	}
             }
             break;
